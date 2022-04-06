@@ -1,0 +1,20 @@
+{
+  "name": "node_create_page",
+  "version": "1.0.0",
+  "description": "introduce: https://www.yuque.com/u220513/thpkyr/ygul1u",
+  "main": "index.js",
+  "scripts": {
+    "new:page": "node ./template/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ch250001757/node_create_page.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ch250001757/node_create_page/issues"
+  },
+  "homepage": "https://github.com/ch250001757/node_create_page#readme"
+}
