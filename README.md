@@ -1,4 +1,4 @@
-# node_create_page
+# node_create_template_page
 
 
 背景: 
