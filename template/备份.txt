@@ -1,0 +1,155 @@
+/**
+ * Created by CH
+ * time: 2022/12/22
+ */
+
+const fs = require('fs');
+const path = require('path');
+let pageName = process.argv.splice(2)[0];
+let pathArr = [];
+let basepath = path.join(process.cwd(), '/src/views/');
+
+/*
+ * @description 选择模板
+ */
+const selctTemplate = () => {
+  return new Promise(resolve => {
+    if (pageName.includes('-noSearch')) {
+      const pageArr = pageName.split('-');
+      pageName = pageArr[0];
+      pathArr = pageArr[0].split('/');
+      resolve('./noSearchTemplate');
+    } else {
+      pathArr = pageName.split('/');
+      resolve('./standardTemplate');
+    }
+  });
+};
+
+/*
+ * @description 创建文件夹
+ * @param {string} fileName 文件名
+ */
+const mkdir = fileName => {
+  return new Promise((resolve, reject) => {
+    fs.mkdir(basepath + fileName, err => {
+      if (err) reject(err);
+      basepath = `${basepath}${fileName}/`;
+      resolve(basepath);
+    });
+  });
+};
+
+/*
+ * @description 创建对应的文件
+ */
+const existsFileDirectory = () => {
+  return new Promise((resolve, reject) => {
+    (async function () {
+      let fileExistflag = true;
+      for (let fileName of pathArr) {
+        if (fs.existsSync(basepath + fileName)) {
+          fileExistflag = false;
+        } else {
+          await mkdir(fileName);
+        }
+      }
+      if (fileExistflag) {
+        resolve(basepath);
+      } else {
+        // eslint-disable-next-line prefer-promise-reject-errors
+        reject('File directory exists!');
+      }
+    })();
+  });
+};
+
+/*
+ * @description 创建文件
+ * @param {string} url 文件路径
+ * @param {string} dest 目标路径
+ * @param {Function} callback 执行回调
+ */
+const existsFile = (url, dest, callback) => {
+  fs.exists(dest, function (exists) {
+    if (exists) {
+      callback && callback(url, dest);
+    } else {
+      fs.mkdir(dest, function (err) {
+        if (err) throw err;
+        callback && callback(url, dest);
+      });
+    }
+  });
+};
+
+/*
+ * @description 模板文件生成器
+ * @param{ String } 模板路径
+ * @param{ String } 生成的目标路径
+ */
+const copyDirectory = (src, dst) => {
+  return new Promise(resolve => {
+    if (fs.existsSync(src)) {
+      fs.readdir(src, function (err, files) {
+        if (err) {
+          console.log(err);
+          return;
+        }
+        files.forEach(filename => {
+          const url = path.join(src, filename);
+          const dest = path.join(dst, filename);
+          fs.stat(path.join(src, filename), function (err, stats) {
+            if (err) throw err;
+            if (stats.isFile()) {
+              let str = '';
+
+              let readStream = fs.createReadStream(url);
+              readStream.on('data', data => {
+                str += data;
+              });
+              readStream.on('end', () => {
+                const pageNameStyle = pageName
+                  .replace(/([A-Z])/g, '-$1')
+                  .toLowerCase()
+                  .substring(1);
+                str = str.replace(/REPLACE_PAGE_NAME/g, pageName).replace(/REPLACE_PAGE_CLASS_NAME/g, pageNameStyle);
+                // 创建可写入流
+                let writeStream = fs.createWriteStream(dest, {
+                  encoding: 'utf8'
+                });
+                writeStream.write(str);
+                resolve('success');
+              });
+            } else if (stats.isDirectory()) {
+              existsFile(url, dest, copyDirectory);
+            }
+          });
+        });
+      });
+    } else {
+      console.log('File directory does not exist !');
+      return false;
+    }
+  });
+};
+
+/*
+ * @description 模板小工具,在src/views/src下快速生成单页面文件
+ * 1.标准模板(有搜索，有表格)
+ *  命令: npm run new:page TestPage
+ * 2.无搜索样式模板，只有表格
+ *  命令: npm run new:page TestPage-noSearch
+ */
+const createNewPage = async () => {
+  try {
+    const templatePath = await selctTemplate();
+    const generatorFilePath = await existsFileDirectory();
+    await copyDirectory(path.join(__dirname, templatePath), generatorFilePath);
+    return console.log(`Successfully created ${pageName} page!`);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+createNewPage();
